@@ -25,6 +25,8 @@ public static class Program
 
         var inMatch = false;
 
+        UnoClient.Connect("localhost", "init");
+
         // Main game loop
         while (!Raylib.WindowShouldClose()) // Detect window close button or ESC key
         {
