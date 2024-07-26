@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Application;
 
-internal class UnoPlayer
+public class UnoPlayer
 {
-    string name;
-    List<UnoCard> hand;
+    public string name;
+    public List<UnoCard> hand;
 
     public UnoPlayer(string name)
     {

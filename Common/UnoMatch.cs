@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Application;
 
-internal class UnoMatch
+public class UnoMatch
 {
     List<UnoPlayer> players = new List<UnoPlayer>();
     UnoCard topCard;

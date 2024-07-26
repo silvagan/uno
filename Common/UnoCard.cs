@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Application;
 
-enum UnoCardColor
+public enum UnoCardColor
 {
     Red,
     Blue,
@@ -16,7 +16,7 @@ enum UnoCardColor
     Special
 };
 
-enum UnoCardType
+public enum UnoCardType
 {
     Number,
     Block,
@@ -26,7 +26,7 @@ enum UnoCardType
     ChangeColor
 };
 
-internal class UnoCard
+public class UnoCard
 {
     public UnoCardColor color;
     public UnoCardType type;
