@@ -1,7 +1,7 @@
 ﻿using Raylib_CsLo;
 using System.Numerics;
 
-namespace Uno;
+namespace Application;
 
 internal class VerticalStack
 {

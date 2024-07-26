@@ -5,13 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Uno;
+namespace Application;
 
 enum UnoCardColor
 {
     Red,
     Blue,
-    Yello,
+    Yellow,
     Green,
     Special
 };
@@ -28,7 +28,7 @@ enum UnoCardType
 
 internal class UnoCard
 {
-    UnoCardColor color;
-    UnoCardType type;
-    int number;
+    public UnoCardColor color;
+    public UnoCardType type;
+    public int number = -1;
 }

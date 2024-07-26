@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace Uno;
+namespace Application;
 
 internal class Options
 {

@@ -1,6 +1,6 @@
 ﻿using Raylib_CsLo;
 
-namespace Uno;
+namespace Application;
 
 public static class Program
 {
@@ -24,8 +24,6 @@ public static class Program
         var matchScreen = new MatchScreen();
 
         var inMatch = false;
-
-        
 
         // Main game loop
         while (!Raylib.WindowShouldClose()) // Detect window close button or ESC key

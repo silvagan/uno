@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Uno;
+namespace Application;
 
 internal class MainMenuScreen
 {

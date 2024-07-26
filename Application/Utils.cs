@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace Uno;
+namespace Application;
 
 internal static class Utils
 {
