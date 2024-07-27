@@ -1,11 +1,16 @@
 ﻿using Raylib_CsLo;
+using System.Net.Sockets;
 
 namespace Application;
 
 public static class Program
 {
+    public static string server = "localhost";
+    public static int port = 8080;
     public static void Main(string[] args)
     {
+        UnoClient unoClient = new UnoClient(server, port);
+
         Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_RESIZABLE);
         Raylib.InitWindow(1280, 720, "Uno");
         Raylib.SetTargetFPS(144);
@@ -40,9 +45,10 @@ public static class Program
                 {
                     options.name = mainMenuScreen.GetPlayerName();
                     options.Save();
-                    
+                    unoClient.name = options.name;
                     Raylib.SetWindowTitle($"Uno [{options.name}]");
                     inMatch = true;
+                    unoClient.Connect();
                 }
             }
         }
