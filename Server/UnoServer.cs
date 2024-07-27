@@ -20,13 +20,13 @@ namespace Server
             while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
             {
                 string receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                Console.WriteLine($"Received: {receivedMessage}");
+                Console.WriteLine($"{receivedMessage} connected!");
 
                 // Process the received message as needed
                 // ...
 
                 // Send a response back to the client (optional)
-                string responseMessage = "Server received your message!";
+                string responseMessage = $"{receivedMessage} connected!";
                 byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessage);
                 stream.Write(responseBytes, 0, responseBytes.Length);
             }
@@ -34,5 +34,13 @@ namespace Server
             client.Close();
         }
 
+        public void OnMessageRecieved()
+        {
+
+        }
+        public void SendMessage()
+        {
+
+        }
     }
 }

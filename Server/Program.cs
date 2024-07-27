@@ -12,14 +12,15 @@ class Program
 
     static void Main(string[] args)
     {
+        bool gameStart = false;
+
         TcpListener listener = new TcpListener(IPAddress.Any, PORT_NO);
         listener.Start();
         Console.WriteLine("Listening for incoming connections...");
 
-        while (true)
+        while (!gameStart)
         {
             TcpClient client = listener.AcceptTcpClient();
-            Console.WriteLine("Client connected!");
 
             // Handle the client in a separate thread
             Thread clientThread = new Thread(UnoServer.HandleClient);
