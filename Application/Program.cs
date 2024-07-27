@@ -40,7 +40,7 @@ public static class Program
             } else {
                 mainMenuScreen.Tick(dt);
 
-                // mainMenuScreen.pressedJoin = true;
+                mainMenuScreen.pressedJoin = true;
                 if (mainMenuScreen.pressedJoin)
                 {
                     options.name = mainMenuScreen.GetPlayerName();
