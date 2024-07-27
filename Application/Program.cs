@@ -51,6 +51,10 @@ public static class Program
                     unoClient.Connect();
                 }
             }
+            if (unoClient.tcp != null)
+            {
+                unoClient.Update();
+            }
         }
         Raylib.CloseWindow();
     }

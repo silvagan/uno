@@ -8,8 +8,8 @@ namespace Application;
 
 public class UnoMatch
 {
-    List<UnoPlayer> players = new List<UnoPlayer>();
-    UnoCard topCard;
-    bool isDirectionClockwise;
-    uint currentPlayer;
+    public List<UnoPlayer> players = new List<UnoPlayer>();
+    public UnoCard topCard;
+    public bool isDirectionClockwise;
+    public uint currentPlayer;
 }
