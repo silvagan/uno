@@ -22,39 +22,22 @@ class Program
 
         listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-        UnoMatch match = new UnoMatch();
-        match.isDirectionClockwise = true;
+        ServerData server = new ServerData(0, new UnoMatch());
+        server.match.isDirectionClockwise = true;
 
         bool matchStart = false;
 
         while (!matchStart)
         {
-
-            TcpClient client = listener.AcceptTcpClient();
-
-            ServerClient serverClient = new ServerClient();
-            serverClient.clients = clients;
-            serverClient.clients.Add(serverClient);
             List<UnoPlayer> connectedPlayers = ServerClient.GetAllPlayers(clients);
-
-            // Handle the client in a separate thread
-            Thread clientThread = new Thread( thread => serverClient.HandleClient(client, match));
-            clientThread.Start();
-
             bool isNull = false;
             foreach (UnoPlayer player in connectedPlayers)
             {
                 if (player == null)
                 {
-                    Console.WriteLine("null");
                     isNull = true;
                 }
-                else
-                {
-                    Console.WriteLine(player.name); 
-                }
             }
-
             if (isNull)
             {
                 continue;
@@ -71,10 +54,33 @@ class Program
                     }
                 }
             }
+
+            if (listener.Pending())
+            {
+                TcpClient client = listener.AcceptTcpClient();
+                ServerClient serverClient = new ServerClient();
+                serverClient.clients = clients;
+                serverClient.clients.Add(serverClient);
+
+                // Handle the client in a separate thread
+                Thread clientThread = new Thread(thread => serverClient.HandleClient(client, server));
+                clientThread.Start();
+            }
         }
         while (matchStart)
         {
             Console.WriteLine("match start");
         }
+    }
+}
+public class ServerData
+{
+    public int IDincrement { get; set; }
+    public UnoMatch match { get; set; }
+
+    public ServerData(int idIncrement, UnoMatch match)
+    {
+        IDincrement = idIncrement;
+        this.match = match;
     }
 }

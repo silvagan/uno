@@ -1,4 +1,5 @@
 ﻿using Application;
+using Common;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -6,29 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Server;
 
-public enum MessageType
-{
-    Connect,
-    Disconnect,
-
-    UpdateReadiness,
-
-    UpdateMatchData,
-
-    StartGame,
-    PlaceCard,
-    EndGame
-}
-public class ReceivedMessage
-{
-    public MessageType type;
-    public byte[] payload;
-};
 public class ServerClient
 {
     public bool clientConnected = true;
@@ -44,7 +28,7 @@ public class ServerClient
         this.stream = stream;
     }
 
-    public void HandleClient(object clientObj, UnoMatch match)
+    public void HandleClient(object clientObj, ServerData data)
     {
         TcpClient client = (TcpClient)clientObj;
         NetworkStream stream = client.GetStream();
@@ -57,40 +41,43 @@ public class ServerClient
             ReceivedMessage msg = ReceiveMessage();
             if (msg != null)
             {
-                OnMessageRecieved(msg, match);
+                OnMessageRecieved(msg, data);
             }
         }
 
     }
 
-    public void OnMessageRecieved(ReceivedMessage msg, UnoMatch match)
+    public void OnMessageRecieved(ReceivedMessage msg, ServerData data)
     {
         if (msg.type == MessageType.Connect)
         {
             string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
             UnoPlayer temp = new UnoPlayer(receivedMessage);
             player = temp;
-            match.players.Add(temp);
+            player.id = data.IDincrement++;
+            data.match.players.Add(temp);
             Console.WriteLine($"{receivedMessage} connected!");
             foreach (ServerClient client in clients)
             {
                 client.SendMatchData();
             }
             string responseString = "";
-            for (int i = 0; i < match.players.Count; i++)
+            for (int i = 0; i < data.match.players.Count; i++)
             {
-                if (i == match.players.Count-1)
+                if (i == data.match.players.Count-1)
                 {
-                    responseString += $"{match.players[i].name}.";
+                    responseString += $"{data.match.players[i].name}.";
                 }
                 else
                 {
-                    responseString += $"{match.players[i].name}, ";
+                    responseString += $"{data.match.players[i].name}, ";
                 }
             }
             Console.WriteLine($"Current connected players: {responseString}");
             byte[] responseMessage = Encoding.ASCII.GetBytes(responseString);
 
+            byte[] bytes = [(byte)player.id];
+            SendMessage(MessageType.ID, bytes);
             foreach (ServerClient client in clients)
             {
                 client.SendMessage(MessageType.Connect, responseMessage);
@@ -99,7 +86,7 @@ public class ServerClient
         if (msg.type == MessageType.Disconnect)
         {
             string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
-            match.players.RemoveAll(p => p.name == receivedMessage);
+            data.match.players.RemoveAll(p => p.name == receivedMessage);
             clients.Remove(this);
             clientConnected = false;
             Console.WriteLine($"{receivedMessage} disconnected");
@@ -109,17 +96,17 @@ public class ServerClient
             }
             string responseString = "";
             byte[] responseMessage;
-            if (match.players.Count > 0)
+            if (data.match.players.Count > 0)
             {
-                for (int i = 0; i < match.players.Count; i++)
+                for (int i = 0; i < data.match.players.Count; i++)
                 {
-                    if (i == match.players.Count - 1)
+                    if (i == data.match.players.Count - 1)
                     {
-                        responseString += $"{match.players[i].name}.";
+                        responseString += $"{data.match.players[i].name}.";
                     }
                     else
                     {
-                        responseString += $"{match.players[i].name}, ";
+                        responseString += $"{data.match.players[i].name}, ";
                     }
                 }
                 Console.WriteLine($"Current connected players: {responseString}");

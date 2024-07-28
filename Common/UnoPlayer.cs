@@ -11,10 +11,12 @@ public class UnoPlayer
     public string name;
     public List<UnoCard> hand;
     public bool isReady = false;
+    public int id = 0;
 
     public UnoPlayer(string name)
     {
         this.name = name;
         this.hand = new List<UnoCard>();
     }
+
 }

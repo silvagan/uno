@@ -9,29 +9,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Common;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Application;
-
-public enum MessageType
-{
-    Connect,
-    Disconnect,
-
-    UpdateReadiness,
-
-    UpdateMatchData,
-
-    StartGame,
-    PlaceCard,
-    EndGame
-}
-
-public class ReceivedMessage
-{
-    public MessageType type;
-    public byte[] payload;
-};
 
 public class UnoClient
 {
@@ -41,6 +22,8 @@ public class UnoClient
     public string name { get; set; }
     public TcpClient tcp { get; set; }
     public UnoMatch? match = null;
+
+    public int ClientId = -1;
 
     public UnoClient(string server, Int32 port)
     {
@@ -55,6 +38,11 @@ public class UnoClient
 
     public void OnMessageRecieved(ReceivedMessage msg)
     {
+        if (msg.type == MessageType.ID)
+        {
+            ClientId = msg.payload[0];
+            Console.WriteLine("Your ID is: {0}", ClientId);
+        }
         if (msg.type == MessageType.Connect)
         {
             Console.WriteLine("Current connected players: {0}", System.Text.Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
@@ -107,23 +95,24 @@ public class UnoClient
     public ReceivedMessage? ReceiveMessage()
     {
         byte[] packet = new byte[255 + 2];
-        Int32 packetLength;
+        MessageType type;
+        int messageLength;
+
         try
         {
-            packetLength = stream.Read(packet, 0, packet.Length);
+            type = (MessageType)stream.ReadByte();
+            messageLength = stream.ReadByte();
+            stream.Read(packet, 0, messageLength);
         }
         catch
         {
             return null;
         }
-        MessageType messageType = (MessageType)packet[0];
-        byte messageLength = packet[1];
-        //Debug.Assert(messageLength == packetLength - 2);
 
-        byte[] payload = packet.Skip(2).ToArray();
+        byte[] payload = packet.ToArray();
         return new ReceivedMessage
         {
-            type = messageType,
+            type = type,
             payload = payload
         };
     }
