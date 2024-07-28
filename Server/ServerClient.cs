@@ -129,6 +129,7 @@ public class ServerClient
             try
             {
                 receivedMessage = bool.Parse(Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+                player.isReady = receivedMessage;
                 foreach (ServerClient client in clients)
                 {
                     client.SendMatchData();
@@ -138,8 +139,6 @@ public class ServerClient
             {
                 Console.WriteLine("could not parse readiness");
             }
-
-            player.isReady = receivedMessage;
             if (player.isReady)
             {
                 Console.WriteLine($"Player [{this.player.name}] is ready.");
