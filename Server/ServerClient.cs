@@ -18,6 +18,8 @@ public enum MessageType
 
     UpdateReadiness,
 
+    UpdateMatchData,
+
     StartGame,
     PlaceCard,
     EndGame
@@ -70,6 +72,7 @@ public class ServerClient
             player = temp;
             match.players.Add(temp);
             Console.WriteLine($"{receivedMessage} connected!");
+            SendMatchData();
             string responseString = "";
             for (int i = 0; i < match.players.Count; i++)
             {
@@ -197,6 +200,31 @@ public class ServerClient
             type = messageType,
             payload = payload
         };
+    }
+
+    public void SendMatchData()
+    {
+        List<UnoPlayer> players = GetAllPlayers();
+        int size = 0;
+
+        foreach (UnoPlayer player in players)
+        {
+            size += 1 + 1 + player.name.Length;
+        }
+        size += 1;
+        byte[] payload = new byte[size];
+
+
+        int i = 0;
+        payload[i++] = (byte)players.Count;
+        foreach (UnoPlayer player in players)
+        {
+            payload[i++] = player.isReady ? (byte)1 : (byte)0;
+            payload[i++] = (byte)player.name.Length;
+            Encoding.ASCII.GetBytes(player.name).CopyTo(payload, i);
+            i += player.name.Length;
+        }
+        SendMessage(MessageType.UpdateMatchData, payload);
     }
 
     public List<UnoPlayer> GetAllPlayers()

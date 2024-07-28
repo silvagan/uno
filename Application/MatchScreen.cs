@@ -732,6 +732,7 @@ internal class MatchScreen
             if (RayGui.GuiButton(stack.nextRectangle(150, 50), myUnoPlayer.isReady ? "Unready" : "Ready"))
             {
                 myUnoPlayer.isReady = !myUnoPlayer.isReady;
+                net.UpdateReadiness(myUnoPlayer.isReady);
             }
         }
 
