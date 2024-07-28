@@ -26,36 +26,46 @@ public static class Program
         }
 
         var mainMenuScreen = new MainMenuScreen(options.name);
-        var matchScreen = new MatchScreen();
+        var matchScreen = new MatchScreen(unoClient);
 
         var inMatch = false;
+        var switchToMatchScreen = false;
 
-        // Main game loop
-        while (!Raylib.WindowShouldClose()) // Detect window close button or ESC key
+        while (!Raylib.WindowShouldClose())
         {
             float dt = Raylib.GetFrameTime();
+
+            if (switchToMatchScreen)
+            {
+                options.name = mainMenuScreen.GetPlayerName();
+                options.Save();
+                unoClient.name = options.name;
+                Raylib.SetWindowTitle($"Uno [{options.name}]");
+                unoClient.Connect();
+
+                matchScreen.OnStart(options.name);
+
+                inMatch = true;
+                switchToMatchScreen = false;
+            }
 
             if (inMatch) {
                 matchScreen.Tick(dt);
             } else {
                 mainMenuScreen.Tick(dt);
 
-                //mainMenuScreen.pressedJoin = false;
                 if (mainMenuScreen.pressedJoin)
                 {
-                    options.name = mainMenuScreen.GetPlayerName();
-                    options.Save();
-                    unoClient.name = options.name;
-                    Raylib.SetWindowTitle($"Uno [{options.name}]");
-                    inMatch = true;
-                    unoClient.Connect();
+                    switchToMatchScreen = true;
                 }
             }
+
             if (unoClient.tcp != null)
             {
                 unoClient.Update();
             }
         }
+
         unoClient.Disconnect();
         Raylib.CloseWindow();
     }

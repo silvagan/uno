@@ -16,7 +16,7 @@ public enum MessageType
     Connect,
     Disconnect,
 
-    UpdateReadyness,
+    UpdateReadiness,
 
     StartGame,
     PlaceCard,
@@ -180,12 +180,14 @@ public class UnoClient
             Console.WriteLine("Disconnect error");
         }
     }
-    public void UpdateReadyness(bool ready)
+    public void UpdateReadiness(bool ready)
     {
         try
         {
             Byte[] data = System.Text.Encoding.ASCII.GetBytes(ready.ToString());
-            SendMessage(MessageType.UpdateReadyness, data);
+            SendMessage(MessageType.UpdateReadiness, data);
+
+            Console.WriteLine($"ready = {ready}");
         }
         catch
         {
