@@ -326,7 +326,7 @@ internal class MatchScreen
     {
         var roundness = 0.15f;
         var offset = 10f;
-        Raylib.DrawRectangleRounded(new Rectangle(rect.X + offset, rect.Y + offset, rect.width, rect.height), roundness, 4, Raylib.BLACK);
+        Raylib.DrawRectangleRounded(new Rectangle(rect.X + offset, rect.Y + offset, rect.width, rect.height), roundness, 4, Raylib.ColorAlpha(Raylib.BLACK, 0.8f));
     }
 
     static float iconCardShear = -0.35f;
@@ -465,7 +465,37 @@ internal class MatchScreen
 
     public void PlayCard(UnoPlayer player, UnoCard card)
     {
+        if (match.topCard == null) return;
 
+        var playerIndex = match.players.IndexOf(player);
+        if (match.currentPlayer != playerIndex) return;
+
+        if (!UnoCard.CanCardBePlayed(match.topCard, card)) return;
+
+        match.topCard = card;
+
+        player.hand.Remove(card);
+
+        if (isMyPlayer(player))
+        {
+            foreach (var heldCard in heldCards)
+            {
+                if (heldCard.card == card)
+                {
+                    heldCards.Remove(heldCard);
+                    break;
+                }
+            } 
+        }
+
+        if (match.isDirectionClockwise)
+        {
+            match.currentPlayer = (match.currentPlayer + 1) % (uint)match.players.Count;
+        }
+        else
+        {
+            match.currentPlayer = (match.currentPlayer - 1) % (uint)match.players.Count;
+        }
     }
 
     public void DrawCardFromDeck(UnoPlayer player, UnoCard card)
@@ -494,6 +524,7 @@ internal class MatchScreen
         match.players.Add(new UnoPlayer("Ona"));
 
         // TODO: Temporary
+        match.currentPlayer = 1;
         match.players[0].isReady = true;
         match.players[2].isReady = true;
         match.players[3].isReady = true;
@@ -510,6 +541,11 @@ internal class MatchScreen
                 cardDrawQueue.Add(Tuple.Create(player, deck[rng.Next(0, deck.Count)]));
             }
         }
+
+        do
+        {
+            match.topCard = deck[rng.Next(0, deck.Count)];
+        } while (match.topCard.type != UnoCardType.Number);
     }
 
     public void DrawPlayerInfo(Vector2 pos, UnoPlayer player)
@@ -521,10 +557,18 @@ internal class MatchScreen
         RayGui.GuiLabel(new Rectangle(panelRect.X + 10, panelRect.Y + 10, panelRect.width - 20, 30), player.name);
         RayGui.GuiLabel(new Rectangle(panelRect.X + 10, panelRect.Y + 10 + 30, panelRect.width - 20, 30), $"{player.hand.Count} cards");
 
-        var playerIndex = match.players.IndexOf(player);
-        if (playerIndex == match.currentPlayer)
+        if (match.started)
         {
-            Raylib.DrawCircleV(new Vector2(panelRect.X + panelRect.width - 20, panelRect.Y + 20), 10, Raylib.RED);
+            var playerIndex = match.players.IndexOf(player);
+            if (playerIndex == match.currentPlayer)
+            {
+                Raylib.DrawCircleV(new Vector2(panelRect.X + panelRect.width - 20, panelRect.Y + 20), 10, Raylib.RED);
+            }
+        }
+
+        if (!match.started && player.isReady)
+        {
+            Raylib.DrawCircleV(new Vector2(panelRect.X + panelRect.width - 20, panelRect.Y + 20), 10, Raylib.GREEN);
         }
     }
 
@@ -664,10 +708,10 @@ internal class MatchScreen
             }
         }
 
+        var myPlayerIndex = match.players.IndexOf(myUnoPlayer);
+
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib.RAYWHITE);
-
-        var myPlayerIndex = match.players.IndexOf(myUnoPlayer);
 
         if (!match.started)
         {
@@ -689,6 +733,11 @@ internal class MatchScreen
             {
                 myUnoPlayer.isReady = !myUnoPlayer.isReady;
             }
+        }
+
+        if (match.topCard != null)
+        {
+            DrawCard(match.topCard, Utils.GetCenteredRect(windowRect, cardSize));
         }
 
         foreach (var heldCard in heldCards)

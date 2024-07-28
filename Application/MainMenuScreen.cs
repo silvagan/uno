@@ -48,7 +48,6 @@ internal class MainMenuScreen
             }
         }
 
-
         if (GetPlayerName().Length == 0)
         {
             RayGui.GuiDisable();
