@@ -23,6 +23,7 @@ public class UnoClient
     public TcpClient tcp { get; set; }
     public UnoMatch? match = null;
     public bool matchstart = false;
+    public UnoCard? cardToPlace = null;
 
     public int ClientId = -1;
 
@@ -69,6 +70,12 @@ public class UnoClient
         }
         else if (msg.type == MessageType.PlaceCard)
         {
+            UnoCard unoCard = new UnoCard();
+            unoCard.color = (UnoCardColor)msg.payload[0];
+            unoCard.type = (UnoCardType)msg.payload[1];
+            unoCard.number = (int)msg.payload[2];
+            cardToPlace = unoCard;
+
             Console.WriteLine("placecard");
         }
     }
@@ -131,6 +138,7 @@ public class UnoClient
             }
         }
     }
+
     public void Connect()
     {
         try
@@ -226,5 +234,25 @@ public class UnoClient
             match = null;
         }
         return m;
+    }
+
+    public UnoCard? GetCardUpdate()
+    {
+        var c = cardToPlace;
+        if (c != null)
+        {
+            cardToPlace = null;
+        }
+        return c;
+    }
+
+    public void PlaceCard(UnoCard card)
+    {
+        byte[] payload = new byte[1+1+1];
+        payload[0] = (byte)card.color;
+        payload[1] = (byte)card.type;
+        payload[2] = (byte)card.number;
+
+        SendMessage(MessageType.PlaceCard, payload);
     }
 }

@@ -477,6 +477,9 @@ internal class MatchScreen
         if (isMyPlayer(player))
         {
             player.hand.Remove(card);
+
+            net.PlaceCard(card);
+
             foreach (var heldCard in heldCards)
             {
                 if (heldCard.card == card)

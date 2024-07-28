@@ -159,6 +159,10 @@ public class ServerClient
         }
         else if (msg.type == MessageType.PlaceCard)
         {
+            foreach (ServerClient client in clients)
+            {
+                SendMessage(MessageType.PlaceCard, msg.payload);
+            }
             Console.WriteLine("placecard");
         }
     }
