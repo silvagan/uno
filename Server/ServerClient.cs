@@ -1,15 +1,14 @@
-﻿using System;
+﻿using Application;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace Application;
+namespace Server;
 
 public enum MessageType
 {
@@ -18,37 +17,62 @@ public enum MessageType
     PlaceCard,
     EndGame
 }
-
 public class ReceivedMessage
 {
     public MessageType type;
     public byte[] payload;
 };
 
-public class UnoClient
+public class ServerClient
 {
-    public string server { get; set; }
-    public Int32 port { get; set; }
     private NetworkStream stream { get; set; }
-    public string name { get; set; }
-    public TcpClient tcp { get; set; }
+    public List<ServerClient> clients { get; set; }
 
-    public UnoClient(string server, Int32 port)
-    {
-        this.server = server;
-        this.port = port;
-    }
+    public ServerClient() { }
+
 
     public void AddStream(NetworkStream stream)
     {
         this.stream = stream;
     }
 
-    public void OnMessageRecieved(ReceivedMessage msg)
+    public void HandleClient(object clientObj, UnoMatch match)
+    {
+        TcpClient client = (TcpClient)clientObj;
+        NetworkStream stream = client.GetStream();
+        Console.WriteLine(((IPEndPoint)client.Client.RemoteEndPoint).Port);
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        AddStream(stream);
+
+        ReceivedMessage msg = ReceiveMessage();
+        if (msg != null)
+        {
+            OnMessageRecieved(msg, match);
+        }
+
+    }
+
+    public void OnMessageRecieved(ReceivedMessage msg, UnoMatch match)
     {
         if (msg.type == MessageType.Connect)
         {
-            Console.WriteLine("current connected players: {0}", System.Text.Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+            string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
+            match.players.Add(new UnoPlayer(receivedMessage));
+            Console.WriteLine($"{receivedMessage} connected!");
+            string responseMessage = "";
+            foreach (UnoPlayer player in match.players)
+            {
+                responseMessage += player.name;
+            }
+
+            byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessage);
+
+           
+            foreach (ServerClient client in clients)
+            {
+                client.SendMessage(MessageType.Connect, responseBytes);
+            }
         }
         else if (msg.type == MessageType.StartGame)
         {
@@ -107,50 +131,5 @@ public class UnoClient
             type = messageType,
             payload = payload
         };
-    }
-
-
-    public void Update()
-    {
-        if (tcp.Client.Poll(0, SelectMode.SelectRead))
-        {
-            var message = ReceiveMessage();
-            if (message != null)
-            {
-                OnMessageRecieved(message);
-            }
-        }
-    }
-    public void Connect()
-    {
-        try
-        {
-            TcpClient client = new TcpClient(server, port);
-            tcp = client;
-            NetworkStream stream = client.GetStream();
-            AddStream(stream);
-
-            // Translate the passed message into ASCII and store it as a Byte array.
-            Byte[] data = System.Text.Encoding.ASCII.GetBytes(name);
-
-            SendMessage(MessageType.Connect, data);
-
-            Console.WriteLine("Client name: {0}", name);
-
-            // Receive the server response.
-
-            // Explicit close is not necessary since TcpClient.Dispose() will be
-            // called automatically.
-            // stream.Close();
-            // client.Close();
-        }
-        catch (ArgumentNullException e)
-        {
-            Console.WriteLine("ArgumentNullException: {0}", e);
-        }
-        catch (SocketException e)
-        {
-            Console.WriteLine("SocketException: {0}", e);
-        }
     }
 }
