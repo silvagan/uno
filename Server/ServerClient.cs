@@ -255,4 +255,14 @@ public class ServerClient
         arr[0] = 1;
         SendMessage(MessageType.StartGame, arr);
     }
+
+    public void SendCard(UnoCard card)
+    {
+        byte[] payload = new byte[1 + 1 + 1];
+        payload[0] = (byte)card.color;
+        payload[1] = (byte)card.type;
+        payload[2] = (byte)card.number;
+
+        SendMessage(MessageType.PlaceCard, payload);
+    }
 }

@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Common;
+using System.Text.RegularExpressions;
 
 namespace Server;
 
@@ -69,9 +71,16 @@ class Program
         }
         if (matchStart)
         {
+            var rng = new Random();
+            List<UnoCard> cards =  UnoCard.GenerateDeck();
+            do
+            {
+                server.match.topCard = cards[rng.Next(0, cards.Count)];
+            } while (server.match.topCard.type != UnoCardType.Number);
+
             foreach (ServerClient client in clients)
             {
-                client.SendGameStart();
+                client.SendGameStart(server.match.topCard);
             }
 
             Console.WriteLine("match start");

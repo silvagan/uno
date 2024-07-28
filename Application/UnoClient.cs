@@ -24,6 +24,7 @@ public class UnoClient
     public UnoMatch? match = null;
     public bool matchstart = false;
     public UnoCard? cardToPlace = null;
+    public UnoCard startingCard;
 
     public int ClientId = -1;
 
@@ -63,6 +64,11 @@ public class UnoClient
         {
             Console.WriteLine("startgame");
             matchstart = true;
+            UnoCard unoCard = new UnoCard();
+            unoCard.color = (UnoCardColor)msg.payload[0];
+            unoCard.type = (UnoCardType)msg.payload[1];
+            unoCard.number = (int)msg.payload[2];
+            startingCard = unoCard;
         }
         else if (msg.type == MessageType.EndGame)
         {
