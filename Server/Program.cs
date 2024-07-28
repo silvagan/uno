@@ -35,11 +35,46 @@ class Program
             ServerClient serverClient = new ServerClient();
             serverClient.clients = clients;
             serverClient.clients.Add(serverClient);
+            List<UnoPlayer> connectedPlayers = ServerClient.GetAllPlayers(clients);
 
             // Handle the client in a separate thread
             Thread clientThread = new Thread( thread => serverClient.HandleClient(client, match));
             clientThread.Start();
 
+            bool isNull = false;
+            foreach (UnoPlayer player in connectedPlayers)
+            {
+                if (player == null)
+                {
+                    Console.WriteLine("null");
+                    isNull = true;
+                }
+                else
+                {
+                    Console.WriteLine(player.name); 
+                }
+            }
+
+            if (isNull)
+            {
+                continue;
+            }
+
+            if (connectedPlayers.Count >= 2)
+            {
+                matchStart = true;
+                foreach (UnoPlayer player in connectedPlayers)
+                {
+                    if (!player.isReady)
+                    {
+                        matchStart = false;
+                    }
+                }
+            }
+        }
+        while (matchStart)
+        {
+            Console.WriteLine("match start");
         }
     }
 }

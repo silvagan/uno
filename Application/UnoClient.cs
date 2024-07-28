@@ -40,7 +40,7 @@ public class UnoClient
     private NetworkStream stream { get; set; }
     public string name { get; set; }
     public TcpClient tcp { get; set; }
-    public UnoMatch match = new UnoMatch();
+    public UnoMatch? match = null;
 
     public UnoClient(string server, Int32 port)
     {
@@ -61,6 +61,7 @@ public class UnoClient
         }
         else if (msg.type == MessageType.UpdateMatchData)
         {
+            match = new UnoMatch();
             match.players = RecieveMatchData(msg.payload);
             Console.WriteLine("recieved match data");
         }
@@ -222,5 +223,15 @@ public class UnoClient
             players.Add(player);
         }
         return players;
+    }
+
+    public UnoMatch? GetMatchUpdate()
+    {
+        var m = match;
+        if (m != null)
+        {
+            match = null;
+        }
+        return m;
     }
 }

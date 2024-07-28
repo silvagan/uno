@@ -72,7 +72,10 @@ public class ServerClient
             player = temp;
             match.players.Add(temp);
             Console.WriteLine($"{receivedMessage} connected!");
-            SendMatchData();
+            foreach (ServerClient client in clients)
+            {
+                client.SendMatchData();
+            }
             string responseString = "";
             for (int i = 0; i < match.players.Count; i++)
             {
@@ -100,20 +103,33 @@ public class ServerClient
             clients.Remove(this);
             clientConnected = false;
             Console.WriteLine($"{receivedMessage} disconnected");
-            string responseString = "";
-            for (int i = 0; i < match.players.Count; i++)
+            foreach (ServerClient client in clients)
             {
-                if (i == match.players.Count - 1)
-                {
-                    responseString += $"{match.players[i].name}.";
-                }
-                else
-                {
-                    responseString += $"{match.players[i].name}, ";
-                }
+                client.SendMatchData();
             }
-            Console.WriteLine($"Current connected players: {responseString}");
-            byte[] responseMessage = Encoding.ASCII.GetBytes(responseString);
+            string responseString = "";
+            byte[] responseMessage;
+            if (match.players.Count > 0)
+            {
+                for (int i = 0; i < match.players.Count; i++)
+                {
+                    if (i == match.players.Count - 1)
+                    {
+                        responseString += $"{match.players[i].name}.";
+                    }
+                    else
+                    {
+                        responseString += $"{match.players[i].name}, ";
+                    }
+                }
+                Console.WriteLine($"Current connected players: {responseString}");
+                responseMessage = Encoding.ASCII.GetBytes(responseString);
+            }
+            else
+            {
+                Console.WriteLine($"All players disconnected.");
+                responseMessage = Encoding.ASCII.GetBytes("All players disconnected.");
+            }
             foreach (ServerClient client in clients)
             {
                 client.SendMessage(MessageType.Connect, responseMessage);
@@ -126,6 +142,10 @@ public class ServerClient
             try
             {
                 receivedMessage = bool.Parse(Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+                foreach (ServerClient client in clients)
+                {
+                    client.SendMatchData();
+                }
             }
             catch
             {
@@ -204,7 +224,7 @@ public class ServerClient
 
     public void SendMatchData()
     {
-        List<UnoPlayer> players = GetAllPlayers();
+        List<UnoPlayer> players = GetAllPlayers(clients);
         int size = 0;
 
         foreach (UnoPlayer player in players)
@@ -227,7 +247,7 @@ public class ServerClient
         SendMessage(MessageType.UpdateMatchData, payload);
     }
 
-    public List<UnoPlayer> GetAllPlayers()
+    public static List<UnoPlayer> GetAllPlayers(List<ServerClient> clients)
     {
         List<UnoPlayer> players = new List<UnoPlayer>();
         foreach (ServerClient client in clients)
@@ -235,5 +255,10 @@ public class ServerClient
             players.Add(client.player);
         }
         return players;
+    }
+
+    public static void StartMatch()
+    {
+
     }
 }
