@@ -14,6 +14,7 @@ namespace Application;
 public enum MessageType
 {
     Connect,
+    Disconnect,
     StartGame,
     PlaceCard,
     EndGame
@@ -24,6 +25,10 @@ public class ReceivedMessage
     public MessageType type;
     public byte[] payload;
 };
+
+
+
+
 
 public class UnoClient
 {
@@ -48,7 +53,11 @@ public class UnoClient
     {
         if (msg.type == MessageType.Connect)
         {
-            Console.WriteLine("current connected players: {0}", System.Text.Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+            Console.WriteLine("Current connected players: {0}", System.Text.Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+        }
+        else if (msg.type == MessageType.Disconnect)
+        {
+            Console.WriteLine("disconnect");
         }
         else if (msg.type == MessageType.StartGame)
         {
@@ -151,6 +160,25 @@ public class UnoClient
         catch (SocketException e)
         {
             Console.WriteLine("SocketException: {0}", e);
+        }
+    }
+    public void Disconnect()
+    {
+        try
+        {
+            // Translate the passed message into ASCII and store it as a Byte array.
+            Byte[] data = System.Text.Encoding.ASCII.GetBytes(name);
+
+            SendMessage(MessageType.Disconnect, data);
+
+            Console.WriteLine("Disconnect: {0}", name);
+
+            stream.Close();
+            tcp.Close();
+        }
+        catch
+        {
+            Console.WriteLine("Disconnect error");
         }
     }
 }

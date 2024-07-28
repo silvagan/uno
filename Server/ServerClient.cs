@@ -13,6 +13,7 @@ namespace Server;
 public enum MessageType
 {
     Connect,
+    Disconnect,
     StartGame,
     PlaceCard,
     EndGame
@@ -40,15 +41,17 @@ public class ServerClient
     {
         TcpClient client = (TcpClient)clientObj;
         NetworkStream stream = client.GetStream();
-        Console.WriteLine(((IPEndPoint)client.Client.RemoteEndPoint).Port);
+        Console.WriteLine($"from port: {((IPEndPoint)client.Client.RemoteEndPoint).Port}");
         byte[] buffer = new byte[1024];
         int bytesRead;
         AddStream(stream);
-
-        ReceivedMessage msg = ReceiveMessage();
-        if (msg != null)
+        while (true)
         {
-            OnMessageRecieved(msg, match);
+            ReceivedMessage msg = ReceiveMessage();
+            if (msg != null)
+            {
+                OnMessageRecieved(msg, match);
+            }
         }
 
     }
@@ -60,18 +63,49 @@ public class ServerClient
             string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
             match.players.Add(new UnoPlayer(receivedMessage));
             Console.WriteLine($"{receivedMessage} connected!");
-            string responseMessage = "";
-            foreach (UnoPlayer player in match.players)
+            string responseString = "";
+            for (int i = 0; i < match.players.Count; i++)
             {
-                responseMessage += player.name;
+                if (i == match.players.Count-1)
+                {
+                    responseString += $"{match.players[i].name}.";
+                }
+                else
+                {
+                    responseString += $"{match.players[i].name}, ";
+                }
             }
+            Console.WriteLine($"Current connected players: {responseString}");
+            byte[] responseMessage = Encoding.ASCII.GetBytes(responseString);
 
-            byte[] responseBytes = Encoding.ASCII.GetBytes(responseMessage);
-
-           
             foreach (ServerClient client in clients)
             {
-                client.SendMessage(MessageType.Connect, responseBytes);
+                client.SendMessage(MessageType.Connect, responseMessage);
+            }
+        }
+        if (msg.type == MessageType.Disconnect)
+        {
+            string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
+            match.players.RemoveAll(p => p.name == receivedMessage);
+            Console.WriteLine($"{receivedMessage} disconnected");
+            string responseString = "";
+            for (int i = 0; i < match.players.Count; i++)
+            {
+                if (i == match.players.Count - 1)
+                {
+                    responseString += $"{match.players[i].name}.";
+                }
+                else
+                {
+                    responseString += $"{match.players[i].name}, ";
+                }
+            }
+            Console.WriteLine($"Current connected players: {responseString}");
+            byte[] responseMessage = Encoding.ASCII.GetBytes(responseString);
+
+            foreach (ServerClient client in clients)
+            {
+                client.SendMessage(MessageType.Connect, responseMessage);
             }
         }
         else if (msg.type == MessageType.StartGame)
@@ -125,7 +159,7 @@ public class ServerClient
         byte messageLength = packet[1];
         //Debug.Assert(messageLength == packetLength - 2);
 
-        byte[] payload = packet.Skip(2).ToArray();
+        byte[] payload = packet.Skip(2).Take(messageLength).ToArray();
         return new ReceivedMessage
         {
             type = messageType,
