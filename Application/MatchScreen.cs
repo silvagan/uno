@@ -2,6 +2,7 @@
 using Raylib_CsLo;
 using System;
 using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Numerics;
 using Rectangle = Raylib_CsLo.Rectangle;
 
@@ -21,7 +22,11 @@ class HeldUnoCard {
 
 internal class MatchScreen
 {
+    public UnoClient net;
+
+    public UnoPlayer myUnoPlayer;
     public UnoMatch match;
+
     public List<UnoCard> deck;
     public Font font;
     public Shader outlineShader;
@@ -39,9 +44,18 @@ internal class MatchScreen
     List<HeldUnoCard> heldCards = new List<HeldUnoCard>();
     HeldUnoCard? grabbedCard = null;
 
-    public MatchScreen()
+    Vector2 deckPosition = new Vector2(20, 20);
+
+    List<Tuple<UnoPlayer, UnoCard>> cardDrawQueue = new List<Tuple<UnoPlayer, UnoCard>>();
+    float cardDrawInterval = 0.2f;
+    DateTime lastCardDrawAt = DateTime.Now;
+
+    public MatchScreen(UnoClient net)
     {
+        this.net = net;
+
         match = new UnoMatch();
+
         deck = GenerateDeck();
         font = Raylib.LoadFontEx("assets/Cabin-BoldItalic.ttf", 256, 95);
         outlineShader = Raylib.LoadShader(null, "assets/outline.glsl");
@@ -53,17 +67,6 @@ internal class MatchScreen
         outlineSizeLoc = Raylib.GetShaderLocation(outlineShader, "outlineSize");
         outlineColorLoc = Raylib.GetShaderLocation(outlineShader, "outlineColor");
         textureSizeLoc = Raylib.GetShaderLocation(outlineShader, "textureSize");
-
-        var rng = new Random();
-
-        for (int i = 0; i < 10; i++)
-        {
-            heldCards.Add(new HeldUnoCard
-            {
-                card = deck[rng.Next(0, deck.Count)],
-                position = new Vector2(rng.NextSingle() * Raylib.GetScreenWidth(), -100)
-            });
-        }
     }
 
     public List<UnoCard> GenerateDeck()
@@ -145,17 +148,18 @@ internal class MatchScreen
         }
     }
 
+    static float cardRoundness = 0.15f;
+
     public void DrawCard(UnoCard card, Rectangle rect)
     {
         var center = Utils.RectCenter(rect);
         var shortEdge = Math.Min(rect.width, rect.height);
-        var roundness = 0.15f;
-        Raylib.DrawRectangleRounded(rect, roundness, 4, Raylib.WHITE);
+        Raylib.DrawRectangleRounded(rect, cardRoundness, 4, Raylib.WHITE);
 
         var cardColor = ColorFromUnoColor(card.color);
 
-        Raylib.DrawRectangleRounded(rect, (float)roundness, 4, Raylib.WHITE);
-        Raylib.DrawRectangleRounded(Utils.ShrinkRect(rect, shortEdge*0.05f), (float)roundness, 4, cardColor);
+        Raylib.DrawRectangleRounded(rect, cardRoundness, 4, Raylib.WHITE);
+        Raylib.DrawRectangleRounded(Utils.ShrinkRect(rect, shortEdge*0.05f), cardRoundness, 4, cardColor);
 
         var centerEllipseWidth = rect.width * 0.38f;
         var centerEllipseHeight = rect.height * 0.44f;
@@ -163,7 +167,6 @@ internal class MatchScreen
 
         RlGl.rlPushMatrix();
         {
-            
             RlGl.rlTranslatef(center.X, center.Y, 0);
             RlGl.rlRotatef(centerEllipseAngle, 0, 0, 1);
             Raylib.DrawEllipse(0, 0, centerEllipseWidth, centerEllipseHeight, Raylib.WHITE);
@@ -259,7 +262,7 @@ internal class MatchScreen
                     new Rectangle(position.X + offset, position.Y - offset, iconCardSize.X, iconCardSize.Y),
                     new Rectangle(position.X - offset, position.Y + offset, iconCardSize.X, iconCardSize.Y)
                 ],
-                roundness,
+                cardRoundness,
                 [cardColor, cardColor]
             );
         }
@@ -278,7 +281,7 @@ internal class MatchScreen
                     new Rectangle(position.X + offset*0.2f, position.Y - offset     , iconCardSize.X, iconCardSize.Y),
                     new Rectangle(position.X - offset     , position.Y + offset*0.2f, iconCardSize.X, iconCardSize.Y)
                 ],
-                roundness,
+                cardRoundness,
                 [
                     ColorFromUnoColor(UnoCardColor.Yellow),
                     ColorFromUnoColor(UnoCardColor.Green),
@@ -287,6 +290,36 @@ internal class MatchScreen
                 ]
             );
         }
+    }
+
+    public void DrawCardBackSide(Rectangle rect)
+    {
+        var center = Utils.RectCenter(rect);
+        var shortEdge = Math.Min(rect.width, rect.height);
+        Raylib.DrawRectangleRounded(rect, cardRoundness, 4, Raylib.WHITE);
+
+        Raylib.DrawRectangleRounded(rect, cardRoundness, 4, Raylib.WHITE);
+        Raylib.DrawRectangleRounded(Utils.ShrinkRect(rect, shortEdge * 0.05f), cardRoundness, 4, ColorFromUnoColor(UnoCardColor.Special));
+
+        var centerEllipseWidth = rect.width * 0.38f;
+        var centerEllipseHeight = rect.height * 0.44f;
+        var centerEllipseAngle = 25f;
+
+        RlGl.rlPushMatrix();
+        {
+            RlGl.rlTranslatef(center.X, center.Y, 0);
+            RlGl.rlRotatef(centerEllipseAngle, 0, 0, 1);
+            Raylib.DrawEllipse(0, 0, centerEllipseWidth, centerEllipseHeight, ColorFromUnoColor(UnoCardColor.Red));
+        }
+        RlGl.rlPopMatrix();
+
+        RlGl.rlPushMatrix();
+        {
+            RlGl.rlTranslatef(center.X, center.Y, 0);
+            RlGl.rlRotatef(-centerEllipseAngle, 0, 0, 1);
+            Utils.DrawTextCenteredOutlined(font, "UNO", Vector2.Zero, shortEdge * 0.5f, 0, ColorFromUnoColor(UnoCardColor.Yellow), shortEdge * 0.015f, ColorFromUnoColor(UnoCardColor.Special));
+        }
+        RlGl.rlPopMatrix();
     }
 
     public void DrawCardShadow(Rectangle rect)
@@ -424,14 +457,69 @@ internal class MatchScreen
         return segmentA + ab * Math.Clamp(d, 0, 1);
     }
 
+
+    public bool isMyPlayer(UnoPlayer player)
+    {
+        return player == myUnoPlayer;
+    }
+
+    public void PlayCard(UnoPlayer player, UnoCard card)
+    {
+
+    }
+
+    public void DrawCardFromDeck(UnoPlayer player, UnoCard card)
+    {
+        player.hand.Add(card);
+
+        if (isMyPlayer(player))
+        {
+            heldCards.Add(new HeldUnoCard
+            {
+                card = card,
+                position = deckPosition
+            });
+        }
+    }
+
+    public void OnStart(string playerName)
+    {
+        myUnoPlayer = new UnoPlayer(playerName);
+        match.players.Add(myUnoPlayer);
+
+        match.players.Add(new UnoPlayer("Petras"));
+        match.players.Add(new UnoPlayer("Jonas"));
+        match.players.Add(new UnoPlayer("Ona"));
+
+        var rng = new Random();
+
+        foreach (var player in match.players)
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                cardDrawQueue.Add(Tuple.Create(player, deck[rng.Next(0, deck.Count)]));
+            }
+        }
+    }
+
     public void Tick(float dt)
     {
-        Raylib.BeginDrawing();
-        Raylib.ClearBackground(Raylib.RAYWHITE);
-
         var windowRect = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
         var mouse = Raylib.GetMousePosition();
-        
+
+        if (cardDrawQueue.Count > 0)
+        {
+            var now = DateTime.Now;
+            var nextCardDrawAt = lastCardDrawAt + TimeSpan.FromSeconds(cardDrawInterval);
+            if (now > nextCardDrawAt)
+            {
+                var entry = cardDrawQueue[0];
+                cardDrawQueue.RemoveAt(0);
+                DrawCardFromDeck(entry.Item1, entry.Item2);
+                lastCardDrawAt = nextCardDrawAt;
+            }
+        }
+
         // Raise card under mouse to top
         for (int i = heldCards.Count - 1; i >= 0; i--)
         {
@@ -494,7 +582,13 @@ internal class MatchScreen
                     if (otherCard == heldCard) continue;
 
                     var toOtherCard = (otherCard.position - heldCard.position);
-                    if (toOtherCard.Length() < cardSize.X*1.1)
+
+                    if (toOtherCard.Length() < 10)
+                    {
+                        var rng = new Random();
+                        heldCard.position += new Vector2(rng.NextSingle(), rng.NextSingle()) * 10;
+                    }
+                    else if (toOtherCard.Length() < cardSize.X*1.1)
                     {
                         heldCard.velocity.X -= (Vector2.Normalize(toOtherCard).X * 100000 / toOtherCard.LengthSquared());
                     }
@@ -516,9 +610,43 @@ internal class MatchScreen
             }
         }
 
+        Raylib.BeginDrawing();
+        Raylib.ClearBackground(Raylib.RAYWHITE);
+
+        var myPlayerIndex = match.players.IndexOf(myUnoPlayer);
+        
+
+        if (!match.started)
+        {
+            var stack = new VerticalStack
+            {
+                gap = 20,
+                position = Utils.GetCenteredPosition(windowRect, new Vector2(200, 300))
+            };
+
+            if (myUnoPlayer.isReady)
+            {
+                RayGui.GuiLabel(stack.nextRectangle(100, 50), "Match has not started (you are ready)");
+            } else
+            {
+                RayGui.GuiLabel(stack.nextRectangle(100, 50), "Match has not started");
+            }
+
+            if (RayGui.GuiButton(stack.nextRectangle(150, 50), myUnoPlayer.isReady ? "Unready" : "Ready"))
+            {
+                myUnoPlayer.isReady = !myUnoPlayer.isReady;
+            }
+        }
+
         foreach (var heldCard in heldCards)
         {
             DrawCardShadow(heldCard.GetRect(cardSize));
+        }
+
+        var deckStackSize = 5;
+        for (int i = 0; i < deckStackSize; i++)
+        {
+            DrawCardBackSide(new Rectangle(deckPosition.X + 4 * deckStackSize - i * 4, deckPosition.Y + 4 * deckStackSize - i * 4, cardSize.X, cardSize.Y));
         }
 
         foreach (var heldCard in heldCards)
