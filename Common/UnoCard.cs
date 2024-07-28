@@ -61,4 +61,61 @@ public class UnoCard
         // If the color matches, in can be placed on top.
         return bottomColor == topCard.color;
     }
+    public static List<UnoCard> GenerateDeck()
+    {
+        var deck = new List<UnoCard>();
+
+        var colors = new UnoCardColor[]
+        {
+            UnoCardColor.Blue,
+            UnoCardColor.Green,
+            UnoCardColor.Red,
+            UnoCardColor.Yellow
+        };
+
+        foreach (var color in colors)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                deck.Add(new UnoCard
+                {
+                    color = color,
+                    type = UnoCardType.Number,
+                    number = i
+                });
+            }
+
+            deck.Add(new UnoCard
+            {
+                color = color,
+                type = UnoCardType.Block
+            });
+
+            deck.Add(new UnoCard
+            {
+                color = color,
+                type = UnoCardType.Reverse
+            });
+
+            deck.Add(new UnoCard
+            {
+                color = color,
+                type = UnoCardType.PlusTwo
+            });
+        }
+
+        deck.Add(new UnoCard
+        {
+            color = UnoCardColor.Special,
+            type = UnoCardType.PlusFour
+        });
+        deck.Add(new UnoCard
+        {
+            color = UnoCardColor.Special,
+            type = UnoCardType.ChangeColor
+        });
+
+        return deck;
+    }
+
 }

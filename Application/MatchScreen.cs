@@ -55,7 +55,7 @@ internal class MatchScreen
 
         match = new UnoMatch();
 
-        deck = GenerateDeck();
+        deck = UnoCard.GenerateDeck();
         font = Raylib.LoadFontEx("assets/Cabin-BoldItalic.ttf", 256, 95);
         outlineShader = Raylib.LoadShader(null, "assets/outline.glsl");
         blockTexture = Raylib.LoadTexture("assets/block.png");
@@ -66,66 +66,6 @@ internal class MatchScreen
         outlineSizeLoc = Raylib.GetShaderLocation(outlineShader, "outlineSize");
         outlineColorLoc = Raylib.GetShaderLocation(outlineShader, "outlineColor");
         textureSizeLoc = Raylib.GetShaderLocation(outlineShader, "textureSize");
-    }
-
-    public List<UnoCard> GenerateDeck()
-    {
-        var deck = new List<UnoCard>();
-
-        var colors = new UnoCardColor[]
-        {
-            UnoCardColor.Blue,
-            UnoCardColor.Green,
-            UnoCardColor.Red,
-            UnoCardColor.Yellow
-        };
-
-        foreach (var color in colors)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                deck.Add(new UnoCard
-                {
-                    color = color,
-                    type = UnoCardType.Number,
-                    number = i
-                });
-            }
-
-            deck.Add(new UnoCard
-            {
-                color = color,
-                type = UnoCardType.Block
-            });
-
-            deck.Add(new UnoCard
-            {
-                color = color,
-                type = UnoCardType.Reverse
-            });
-
-            deck.Add(new UnoCard
-            {
-                color = color,
-                type = UnoCardType.PlusTwo
-            });
-        }
-
-        for (int i = 0; i < 2; i++)
-        {
-            deck.Add(new UnoCard
-            {
-                color = UnoCardColor.Special,
-                type = UnoCardType.PlusFour
-            });
-            deck.Add(new UnoCard
-            {
-                color = UnoCardColor.Special,
-                type = UnoCardType.ChangeColor
-            });
-        }
-
-        return deck;
     }
 
     static Color ColorFromUnoColor(UnoCardColor color)
@@ -749,15 +689,12 @@ internal class MatchScreen
             }
         }
 
+        if (net.matchstart && !match.started)
         {
-            var isEveryoneReady = match.players.All(p => p.isReady);
-            if (match.players.Count >= 2 && isEveryoneReady && !match.started)
-            {
-                match.started = true;
-                OnMatchStarted();
-            }
+            match.started = true;
+            OnMatchStarted();
         }
-
+        
         var myUnoPlayer = GetMyUnoPlayer();
 
         var myPlayerIndex = -1;
