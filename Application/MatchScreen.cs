@@ -1,4 +1,5 @@
-﻿using Raylib_CsLo;
+﻿using Microsoft.Toolkit.HighPerformance;
+using Raylib_CsLo;
 using System;
 using System.Diagnostics;
 using System.Numerics;
@@ -6,6 +7,17 @@ using Rectangle = Raylib_CsLo.Rectangle;
 
 
 namespace Application;
+
+class HeldUnoCard {
+    public UnoCard card;
+    public Vector2 position;
+    public Vector2 velocity;
+
+    public Rectangle GetRect(Vector2 size)
+    {
+        return new Rectangle(position.X - size.X / 2, position.Y - size.Y / 2, size.X, size.Y);
+    }
+}
 
 internal class MatchScreen
 {
@@ -16,10 +28,16 @@ internal class MatchScreen
     Texture blockTexture;
     Texture reverseTexture;
 
+    static float cardWidth = 120f;
+    static Vector2 cardSize = new Vector2(cardWidth, (400f / 250f) * cardWidth);
+
     // Outline shader variable locations
     int outlineSizeLoc;
     int outlineColorLoc;
     int textureSizeLoc;
+
+    List<HeldUnoCard> heldCards = new List<HeldUnoCard>();
+    HeldUnoCard? grabbedCard = null;
 
     public MatchScreen()
     {
@@ -35,6 +53,17 @@ internal class MatchScreen
         outlineSizeLoc = Raylib.GetShaderLocation(outlineShader, "outlineSize");
         outlineColorLoc = Raylib.GetShaderLocation(outlineShader, "outlineColor");
         textureSizeLoc = Raylib.GetShaderLocation(outlineShader, "textureSize");
+
+        var rng = new Random();
+
+        for (int i = 0; i < 10; i++)
+        {
+            heldCards.Add(new HeldUnoCard
+            {
+                card = deck[rng.Next(0, deck.Count)],
+                position = new Vector2(rng.NextSingle() * Raylib.GetScreenWidth(), -100)
+            });
+        }
     }
 
     public List<UnoCard> GenerateDeck()
@@ -260,6 +289,13 @@ internal class MatchScreen
         }
     }
 
+    public void DrawCardShadow(Rectangle rect)
+    {
+        var roundness = 0.15f;
+        var offset = 10f;
+        Raylib.DrawRectangleRounded(new Rectangle(rect.X + offset, rect.Y + offset, rect.width, rect.height), roundness, 4, Raylib.BLACK);
+    }
+
     static float iconCardShear = -0.35f;
 
     static void DrawIconCardStack(Rectangle[] rects, float roundness, Color[] colors)
@@ -377,26 +413,117 @@ internal class MatchScreen
         Utils.DrawTextCentered(font, text, center, fontSize, 0, tint);
     }
 
+    public Vector2 ClosestPoinOnSegment(Vector2 from, Vector2 segmentA, Vector2 segmentB)
+    {
+        var ab = segmentB - segmentA;
+        var ap = from - segmentA;
+
+        var proj = Vector2.Dot(ap, ab);
+        var d = proj / ab.LengthSquared();
+
+        return segmentA + ab * Math.Clamp(d, 0, 1);
+    }
+
     public void Tick(float dt)
     {
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(Raylib.LIGHTGRAY);
+        Raylib.ClearBackground(Raylib.RAYWHITE);
 
         var windowRect = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-
-        var cardWidth = 120f;
-        var cardRatio = 400f / 250f;
-        var cardSize = new Vector2(cardWidth, cardRatio * cardWidth);
-
-        for (int i = 0; i < 5; i++)
+        var mouse = Raylib.GetMousePosition();
+        
+        // Raise card under mouse to top
+        for (int i = heldCards.Count - 1; i >= 0; i--)
         {
-            for (int j = 0; j < 13; j++)
+            var heldCard = heldCards[i]; 
+            if (Raylib.CheckCollisionPointRec(mouse, heldCard.GetRect(cardSize)))
             {
-                var index = i * 13 + j;
-                if (index >= deck.Count) break;
+                if (i == heldCards.Count - 1) break;
+                heldCards.Remove(heldCard);
+                heldCards.Add(heldCard);
 
-                DrawCard(deck[index], new Rectangle(cardSize.X * j, cardSize.Y * i, cardSize.X, cardSize.Y));
+                break;
             }
+        }
+
+        { // Card grabbing logic
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+            {
+                for (int i = heldCards.Count - 1; i >= 0; i--)
+                {
+                    var heldCard = heldCards[i];
+                    if (Raylib.CheckCollisionPointRec(mouse, heldCard.GetRect(cardSize)))
+                    {
+                        grabbedCard = heldCard;
+                        break;
+                    }
+                }
+            }
+            else if (Raylib.IsMouseButtonReleased(MouseButton.MOUSE_BUTTON_LEFT))
+            {
+                grabbedCard = null;
+            }
+
+            if (Raylib.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && grabbedCard != null)
+            {
+                grabbedCard.velocity += Raylib.GetMouseDelta()/dt;
+            }
+        }
+
+        { // Push card to bottom of screen
+
+            var offsetFromBottom = cardSize.Y * 0.1f;
+            if (windowRect.height - mouse.Y < cardSize.Y * 2)
+            {
+                offsetFromBottom = cardSize.Y * 0.6f;
+            }
+
+            var heldSegmentSize = (float)Math.Min(windowRect.width * 0.8, cardSize.X * heldCards.Count);
+            var segmentStart = (windowRect.width - heldSegmentSize) / 2;
+            var heldSegmentStart = new Vector2(segmentStart, windowRect.height - offsetFromBottom);
+            var heldSegmentEnd = new Vector2(segmentStart + heldSegmentSize, windowRect.height - offsetFromBottom);
+
+            foreach (var heldCard in heldCards)
+            {
+                if (heldCard == grabbedCard) continue;
+                var closest = ClosestPoinOnSegment(heldCard.position, heldSegmentStart, heldSegmentEnd);
+
+                heldCard.velocity += (closest - heldCard.position) * 5;
+                foreach (var otherCard in heldCards)
+                {
+                    if (otherCard == heldCard) continue;
+
+                    var toOtherCard = (otherCard.position - heldCard.position);
+                    if (toOtherCard.Length() < cardSize.X*1.1)
+                    {
+                        heldCard.velocity.X -= (Vector2.Normalize(toOtherCard).X * 100000 / toOtherCard.LengthSquared());
+                    }
+                }
+
+                if ((closest - heldCard.position).Length() < 1)
+                {
+                    heldCard.position = Vector2.Clamp(heldCard.position, heldSegmentStart, heldSegmentEnd);
+                }
+            }
+        }
+
+        { // Apply physics to cards
+            foreach (var heldCard in heldCards)
+            {
+                heldCard.position += heldCard.velocity * dt;
+
+                heldCard.velocity = Vector2.Zero;
+            }
+        }
+
+        foreach (var heldCard in heldCards)
+        {
+            DrawCardShadow(heldCard.GetRect(cardSize));
+        }
+
+        foreach (var heldCard in heldCards)
+        {
+            DrawCard(heldCard.card, heldCard.GetRect(cardSize));
         }
 
         Raylib.EndDrawing();
