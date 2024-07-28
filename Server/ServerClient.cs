@@ -165,7 +165,7 @@ public class ServerClient
                 {
                     continue;
                 }
-                SendMessage(MessageType.PlaceCard, msg.payload);
+                client.SendMessage(MessageType.PlaceCard, msg.payload);
             }
             Console.WriteLine("placecard");
         }
