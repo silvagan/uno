@@ -28,7 +28,7 @@ internal static class Utils
 
     public static Vector2 RectCenter(Rectangle rect)
     {
-        return new Vector2(rect.x + rect.width/2, rect.y + rect.height/2);
+        return new Vector2(rect.x + rect.width / 2, rect.y + rect.height / 2);
     }
 
     public static void CopyString(string from, sbyte[] to)
