@@ -216,7 +216,7 @@ public class ServerClient
 
         foreach (UnoPlayer player in players)
         {
-            size += 1 + 1 + player.name.Length;
+            size += 1 + 1 + 1 + player.name.Length;
         }
         size += 1;
         byte[] payload = new byte[size];
@@ -227,8 +227,10 @@ public class ServerClient
         foreach (UnoPlayer player in players)
         {
             payload[i++] = player.isReady ? (byte)1 : (byte)0;
+            payload[i++] = (byte)player.id;
             payload[i++] = (byte)player.name.Length;
             Encoding.ASCII.GetBytes(player.name).CopyTo(payload, i);
+
             i += player.name.Length;
         }
         SendMessage(MessageType.UpdateMatchData, payload);
