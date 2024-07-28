@@ -485,12 +485,22 @@ internal class MatchScreen
     public void OnStart(string playerName)
     {
         myUnoPlayer = new UnoPlayer(playerName);
-        match.players.Add(myUnoPlayer);
 
         match.players.Add(new UnoPlayer("Petras"));
+        
+        match.players.Add(myUnoPlayer);
+
         match.players.Add(new UnoPlayer("Jonas"));
         match.players.Add(new UnoPlayer("Ona"));
 
+        // TODO: Temporary
+        match.players[0].isReady = true;
+        match.players[2].isReady = true;
+        match.players[3].isReady = true;
+    }
+
+    public void OnMatchStarted()
+    {
         var rng = new Random();
 
         foreach (var player in match.players)
@@ -500,6 +510,40 @@ internal class MatchScreen
                 cardDrawQueue.Add(Tuple.Create(player, deck[rng.Next(0, deck.Count)]));
             }
         }
+    }
+
+    public void DrawPlayerInfo(Vector2 pos, UnoPlayer player)
+    {
+        var panelRect = new Rectangle(pos.X, pos.Y, 160, 80);
+        Raylib.DrawRectangleRec(panelRect, Raylib.LIGHTGRAY);
+        Raylib.DrawRectangleLinesEx(panelRect, 2, Raylib.BLACK);
+
+        RayGui.GuiLabel(new Rectangle(panelRect.X + 10, panelRect.Y + 10, panelRect.width - 20, 30), player.name);
+        RayGui.GuiLabel(new Rectangle(panelRect.X + 10, panelRect.Y + 10 + 30, panelRect.width - 20, 30), $"{player.hand.Count} cards");
+
+        var playerIndex = match.players.IndexOf(player);
+        if (playerIndex == match.currentPlayer)
+        {
+            Raylib.DrawCircleV(new Vector2(panelRect.X + panelRect.width - 20, panelRect.Y + 20), 10, Raylib.RED);
+        }
+    }
+
+    public void DrawRowOfHiddenCards(Vector2 from, Vector2 to, Vector2 cardSize, int count, float angle)
+    {
+        // Raylib.DrawLineEx(from, to, 10, Raylib.RED);
+
+        var step = (to - from) / count;
+        for (int i = 0; i < count; i++)
+        {
+            var pos = from + step * (i + 0.5f);
+
+            RlGl.rlPushMatrix();
+            RlGl.rlTranslatef(pos.X, pos.Y, 0);
+            RlGl.rlRotatef(angle, 0, 0, 1);
+            DrawCardBackSide(new Rectangle(-cardSize.X / 2, -cardSize.Y / 2, cardSize.X, cardSize.Y));
+            RlGl.rlPopMatrix();
+        }
+
     }
 
     public void Tick(float dt)
@@ -516,7 +560,7 @@ internal class MatchScreen
                 var entry = cardDrawQueue[0];
                 cardDrawQueue.RemoveAt(0);
                 DrawCardFromDeck(entry.Item1, entry.Item2);
-                lastCardDrawAt = nextCardDrawAt;
+                lastCardDrawAt = now;
             }
         }
 
@@ -610,11 +654,20 @@ internal class MatchScreen
             }
         }
 
+        {
+            // TODO: Temporary
+            var isEveryoneReady = match.players.All(p => p.isReady);
+            if (isEveryoneReady && !match.started)
+            {
+                match.started = true;
+                OnMatchStarted();
+            }
+        }
+
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib.RAYWHITE);
 
         var myPlayerIndex = match.players.IndexOf(myUnoPlayer);
-        
 
         if (!match.started)
         {
@@ -653,6 +706,33 @@ internal class MatchScreen
         foreach (var heldCard in heldCards)
         {
             DrawCard(heldCard.card, heldCard.GetRect(cardSize));
+        }
+
+        DrawPlayerInfo(new Vector2(10, windowRect.height - 90), myUnoPlayer);
+
+        var enemyCardScale = 0.7f;
+        var enemyCardSize = cardSize * enemyCardScale;
+
+        for (int offset = 1; offset < match.players.Count; offset++)
+        {
+            int i = (myPlayerIndex + offset) % match.players.Count;
+            var player = match.players[i];
+
+            if (i == (myPlayerIndex + 1) % match.players.Count)
+            {
+                DrawRowOfHiddenCards(new Vector2(windowRect.width, windowRect.height * 0.2f), new Vector2(windowRect.width, windowRect.height * 0.6f), enemyCardSize, player.hand.Count, -90);
+                DrawPlayerInfo(new Vector2(windowRect.width - 170, windowRect.height - 90 - 100), player);
+            }
+            else if (i == (myPlayerIndex - 1) % match.players.Count)
+            {
+                DrawRowOfHiddenCards(new Vector2(0, windowRect.height * 0.48f), new Vector2(0, windowRect.height * 0.8f), enemyCardSize, player.hand.Count, 90);
+                DrawPlayerInfo(new Vector2(10, 250), player);
+            }
+            else if (i == (myPlayerIndex + 2) % match.players.Count)
+            {
+                DrawRowOfHiddenCards(new Vector2(windowRect.width*0.3f, 0), new Vector2(windowRect.width * 0.8f, 0), enemyCardSize, player.hand.Count, 180);
+                DrawPlayerInfo(new Vector2(windowRect.width - 170, 10), player);
+            }
         }
 
         Raylib.EndDrawing();
