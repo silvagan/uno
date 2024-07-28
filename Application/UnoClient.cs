@@ -15,6 +15,9 @@ public enum MessageType
 {
     Connect,
     Disconnect,
+
+    UpdateReadyness,
+
     StartGame,
     PlaceCard,
     EndGame
@@ -25,10 +28,6 @@ public class ReceivedMessage
     public MessageType type;
     public byte[] payload;
 };
-
-
-
-
 
 public class UnoClient
 {
@@ -179,6 +178,18 @@ public class UnoClient
         catch
         {
             Console.WriteLine("Disconnect error");
+        }
+    }
+    public void UpdateReadyness(bool ready)
+    {
+        try
+        {
+            Byte[] data = System.Text.Encoding.ASCII.GetBytes(ready.ToString());
+            SendMessage(MessageType.UpdateReadyness, data);
+        }
+        catch
+        {
+            Console.WriteLine("UpdateReadyness error");
         }
     }
 }

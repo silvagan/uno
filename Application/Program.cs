@@ -48,7 +48,7 @@ public static class Program
                     unoClient.name = options.name;
                     Raylib.SetWindowTitle($"Uno [{options.name}]");
                     inMatch = true;
-                    //unoClient.Connect();
+                    unoClient.Connect();
                 }
             }
             if (unoClient.tcp != null)

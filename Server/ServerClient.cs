@@ -1,6 +1,7 @@
 ﻿using Application;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -14,6 +15,9 @@ public enum MessageType
 {
     Connect,
     Disconnect,
+
+    UpdateReadiness,
+
     StartGame,
     PlaceCard,
     EndGame
@@ -23,11 +27,12 @@ public class ReceivedMessage
     public MessageType type;
     public byte[] payload;
 };
-
 public class ServerClient
 {
+    public bool clientConnected = true;
     private NetworkStream stream { get; set; }
     public List<ServerClient> clients { get; set; }
+    public UnoPlayer player { get; set; }
 
     public ServerClient() { }
 
@@ -45,7 +50,7 @@ public class ServerClient
         byte[] buffer = new byte[1024];
         int bytesRead;
         AddStream(stream);
-        while (true)
+        while (clientConnected)
         {
             ReceivedMessage msg = ReceiveMessage();
             if (msg != null)
@@ -61,7 +66,9 @@ public class ServerClient
         if (msg.type == MessageType.Connect)
         {
             string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
-            match.players.Add(new UnoPlayer(receivedMessage));
+            UnoPlayer temp = new UnoPlayer(receivedMessage);
+            player = temp;
+            match.players.Add(temp);
             Console.WriteLine($"{receivedMessage} connected!");
             string responseString = "";
             for (int i = 0; i < match.players.Count; i++)
@@ -87,6 +94,8 @@ public class ServerClient
         {
             string receivedMessage = Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length);
             match.players.RemoveAll(p => p.name == receivedMessage);
+            clients.Remove(this);
+            clientConnected = false;
             Console.WriteLine($"{receivedMessage} disconnected");
             string responseString = "";
             for (int i = 0; i < match.players.Count; i++)
@@ -102,15 +111,38 @@ public class ServerClient
             }
             Console.WriteLine($"Current connected players: {responseString}");
             byte[] responseMessage = Encoding.ASCII.GetBytes(responseString);
-
             foreach (ServerClient client in clients)
             {
                 client.SendMessage(MessageType.Connect, responseMessage);
+            }
+            
+        }
+        else if (msg.type == MessageType.UpdateReadiness)
+        {
+            bool receivedMessage = false;
+            try
+            {
+                receivedMessage = bool.Parse(Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+            }
+            catch
+            {
+                Console.WriteLine("could not parse readiness");
+            }
+
+            player.isReady = receivedMessage;
+            if (player.isReady)
+            {
+                Console.WriteLine($"Player [{this.player.name}] is ready.");
+            }
+            else
+            {
+                Console.WriteLine($"Player [{this.player.name}] is not ready.");
             }
         }
         else if (msg.type == MessageType.StartGame)
         {
             Console.WriteLine("startgame");
+            
         }
         else if (msg.type == MessageType.EndGame)
         {
@@ -165,5 +197,15 @@ public class ServerClient
             type = messageType,
             payload = payload
         };
+    }
+
+    public List<UnoPlayer> GetAllPlayers()
+    {
+        List<UnoPlayer> players = new List<UnoPlayer>();
+        foreach (ServerClient client in clients)
+        {
+            players.Add(client.player);
+        }
+        return players;
     }
 }

@@ -25,7 +25,9 @@ class Program
         UnoMatch match = new UnoMatch();
         match.isDirectionClockwise = true;
 
-        while (true)
+        bool matchStart = false;
+
+        while (!matchStart)
         {
 
             TcpClient client = listener.AcceptTcpClient();
@@ -37,15 +39,6 @@ class Program
             // Handle the client in a separate thread
             Thread clientThread = new Thread( thread => serverClient.HandleClient(client, match));
             clientThread.Start();
-
-
-
-
-
-
-
-
-
 
         }
     }
