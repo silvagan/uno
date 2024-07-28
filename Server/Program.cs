@@ -67,8 +67,13 @@ class Program
                 clientThread.Start();
             }
         }
-        while (matchStart)
+        if (matchStart)
         {
+            foreach (ServerClient client in clients)
+            {
+                client.SendGameStart();
+            }
+
             Console.WriteLine("match start");
         }
     }

@@ -22,6 +22,7 @@ public class UnoClient
     public string name { get; set; }
     public TcpClient tcp { get; set; }
     public UnoMatch? match = null;
+    public bool matchstart = false;
 
     public int ClientId = -1;
 
@@ -60,6 +61,7 @@ public class UnoClient
         else if (msg.type == MessageType.StartGame)
         {
             Console.WriteLine("startgame");
+            matchstart = true;
         }
         else if (msg.type == MessageType.EndGame)
         {

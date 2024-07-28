@@ -245,8 +245,10 @@ public class ServerClient
         return players;
     }
 
-    public static void StartMatch()
+    public void SendGameStart()
     {
-
+        byte[] arr = new byte[1];
+        arr[0] = 1;
+        SendMessage(MessageType.StartGame, arr);
     }
 }
