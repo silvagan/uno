@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -17,6 +19,8 @@ public enum MessageType
     Disconnect,
 
     UpdateReadiness,
+
+    UpdateMatchData,
 
     StartGame,
     PlaceCard,
@@ -36,6 +40,7 @@ public class UnoClient
     private NetworkStream stream { get; set; }
     public string name { get; set; }
     public TcpClient tcp { get; set; }
+    public UnoMatch match = new UnoMatch();
 
     public UnoClient(string server, Int32 port)
     {
@@ -53,6 +58,11 @@ public class UnoClient
         if (msg.type == MessageType.Connect)
         {
             Console.WriteLine("Current connected players: {0}", System.Text.Encoding.ASCII.GetString(msg.payload, 0, msg.payload.Length));
+        }
+        else if (msg.type == MessageType.UpdateMatchData)
+        {
+            match.players = RecieveMatchData(msg.payload);
+            Console.WriteLine("recieved match data");
         }
         else if (msg.type == MessageType.Disconnect)
         {
@@ -193,5 +203,24 @@ public class UnoClient
         {
             Console.WriteLine("UpdateReadyness error");
         }
+    }
+
+    public List<UnoPlayer> RecieveMatchData(byte[] payload)
+    {
+        List<UnoPlayer> players = new List<UnoPlayer>();
+
+        int playerCount = payload[0];
+        int currentByte = 1;
+        for (int i = 0; i < playerCount; i++)
+        {
+            bool isReady = BitConverter.ToBoolean(payload, currentByte++);
+            int nameLength = payload[currentByte++];
+            string name = Encoding.ASCII.GetString(payload, currentByte++, nameLength);
+            currentByte += nameLength;
+            UnoPlayer player = new UnoPlayer(name);
+            player.isReady = isReady;
+            players.Add(player);
+        }
+        return players;
     }
 }
