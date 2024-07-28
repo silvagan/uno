@@ -10,6 +10,7 @@ public class UnoPlayer
 {
     public string name;
     public List<UnoCard> hand;
+    public bool isReady = false;
 
     public UnoPlayer(string name)
     {
