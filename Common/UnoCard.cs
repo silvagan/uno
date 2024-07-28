@@ -47,7 +47,7 @@ public class UnoCard
             return true;
         }
 
-        if (bottomCard.type == topCard.type)
+        if (bottomCard.type != UnoCardType.Number && bottomCard.type == topCard.type)
         {
             return true;
         }

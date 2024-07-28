@@ -488,10 +488,8 @@ internal class MatchScreen
             }
         }
 
-        do
-        {
-            match.topCard = deck[rng.Next(0, deck.Count)];
-        } while (match.topCard.type != UnoCardType.Number);
+        Debug.Assert(net.startingCard != null);
+        match.topCard = net.startingCard;
     }
 
     public void DrawPlayerInfo(Vector2 pos, UnoPlayer player)
@@ -574,6 +572,12 @@ internal class MatchScreen
             {
                 match.players.RemoveAt(match.players.Count-1);
             }
+        }
+
+        var cardUpdate = net.GetCardUpdate();
+        if (cardUpdate != null)
+        {
+            PlayCard(match.players[(int)match.currentPlayer], cardUpdate);
         }
 
         var windowRect = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
