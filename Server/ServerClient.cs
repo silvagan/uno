@@ -161,6 +161,10 @@ public class ServerClient
         {
             foreach (ServerClient client in clients)
             {
+                if (client == this)
+                {
+                    continue;
+                }
                 SendMessage(MessageType.PlaceCard, msg.payload);
             }
             Console.WriteLine("placecard");
@@ -249,20 +253,13 @@ public class ServerClient
         return players;
     }
 
-    public void SendGameStart()
-    {
-        byte[] arr = new byte[1];
-        arr[0] = 1;
-        SendMessage(MessageType.StartGame, arr);
-    }
-
-    public void SendCard(UnoCard card)
+    public void SendGameStart(UnoCard card)
     {
         byte[] payload = new byte[1 + 1 + 1];
         payload[0] = (byte)card.color;
         payload[1] = (byte)card.type;
         payload[2] = (byte)card.number;
-
-        SendMessage(MessageType.PlaceCard, payload);
+        SendMessage(MessageType.StartGame, payload);
     }
+
 }
