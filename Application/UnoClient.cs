@@ -206,7 +206,7 @@ public class UnoClient
             bool isReady = BitConverter.ToBoolean(payload, currentByte++);
             int id = payload[currentByte++];
             int nameLength = payload[currentByte++];
-            string name = Encoding.ASCII.GetString(payload, currentByte++, nameLength);
+            string name = Encoding.ASCII.GetString(payload, currentByte, nameLength);
             currentByte += nameLength;
             UnoPlayer player = new UnoPlayer(name);
             player.isReady = isReady;
